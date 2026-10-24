@@ -1,0 +1,231 @@
+# Emergency Response Management System — Backend & DBMS Implementation
+
+## 1. Objective
+
+Build my part of our two-person college DBMS project: **MySQL database functionality, advanced SQL, backend APIs, authentication, authorization, and backend testing**.
+
+Work directly in the existing repository. Inspect the current implementation briefly, reuse working code, and implement the missing functionality. Do not spend excessive time planning, repeatedly auditing unchanged files, or asking for approval after every step.
+
+The existing SQL schema and sample-data files are the starting point. Inspect them and use them as the source of truth for the current database design. Do not unnecessarily regenerate or rewrite them.
+
+## 2. Division of responsibilities
+
+**My responsibilities:**
+- MySQL integration and relational database operations.
+- Advanced SQL queries and database programming.
+- Backend APIs and business logic.
+- Authentication and authorization.
+- Database-level access control.
+- Backend testing and documentation.
+
+**My teammate's responsibilities:**
+- MongoDB collections, documents, indexes, queries, and NoSQL implementation.
+- Next.js frontend, UI components, styling, and frontend testing.
+
+Do not build my teammate's frontend or independently implement their MongoDB collections and queries. Make my backend compatible with their work through agreed API contracts. Avoid modifying their files or duplicating their implementation.
+
+## 3. Technology and existing implementation
+
+- Relational database: MySQL.
+- NoSQL database: MongoDB, implemented by my teammate.
+- Frontend: Next.js, implemented by my teammate.
+- Backend: Reuse the existing framework. If none exists, choose a lightweight, suitable framework.
+- SQL environment: MySQL Command Line Client or the existing database tooling.
+
+Inspect the repository structure, configuration, dependencies, schema, sample data, and available college evaluation rubric. Determine what already works and continue from there.
+
+## 4. MySQL integration and data integrity
+
+Use the existing schema and sample-data files. Verify that the backend models and database operations match the actual tables, column names, keys, data types, and constraints.
+
+Implement reliable database connectivity and configuration using environment variables. Provide an `.env.example` with placeholders and never commit actual credentials.
+
+Ensure that:
+- Primary keys and foreign keys are respected.
+- Invalid references and duplicate operations are handled appropriately.
+- Incident, dispatch, unit, responder, and resource relationships remain consistent.
+- Resource allocations cannot exceed available stock.
+- Related database writes use transactions when necessary.
+- Errors are handled without exposing credentials or internal details.
+- Existing sample records and identifiers are preserved.
+
+Do not unnecessarily recreate the database or regenerate the existing SQL files. Warn me and obtain approval before destructive database operations or migrations that could lose data.
+
+## 5. Advanced SQL requirements
+
+The college DBMS rubric gives significant marks to advanced database concepts. Implement meaningful, executable SQL demonstrations using the existing schema and realistic emergency-response scenarios.
+
+Prioritize the features explicitly required by the available rubric:
+
+- CRUD operations.
+- Multi-table joins.
+- Nested and correlated subqueries.
+- Aggregate functions, `GROUP BY`, and `HAVING`.
+- Common Table Expressions (CTEs).
+- A meaningful recursive query where supported and appropriate.
+- Stored procedures.
+- Stored functions.
+- Triggers.
+- Transactions, commit, and rollback.
+- Useful views and indexes.
+
+Build examples around:
+- Listing incidents by severity, status, and location.
+- Retrieving units and responders associated with incidents.
+- Summarizing dispatches per incident.
+- Finding available units and resources.
+- Allocating and returning resources.
+- Identifying incidents involving multiple patients.
+- Tracking unresolved incidents and response activity.
+- Calculating useful operational summaries.
+
+Use syntax compatible with the actual MySQL version. Avoid adding artificial features merely to increase the number of scripts.
+
+Organize SQL demonstrations into clear files if suitable files do not already exist. Include short comments identifying each task and enough explanation to demonstrate the feature during a viva.
+
+Test important operations with valid and invalid inputs. Ensure transactions roll back correctly when a related operation fails.
+
+## 6. Backend APIs
+
+Implement or complete the APIs required by the application, reusing existing conventions.
+
+### Authentication
+- Registration if required.
+- Login and logout/session handling.
+- Current authenticated user.
+- Token refresh or invalidation where appropriate.
+
+### Organizations
+- List, view, create, update, and delete operations as permitted.
+
+### Responders
+- List and view responders.
+- Create and update responder records.
+- Assign or reassign responders to units.
+- Retrieve responders assigned to a unit.
+- Update responder availability.
+
+### Units
+- List and view units.
+- Create and update units.
+- Retrieve unit availability and current assignments.
+
+### Incidents
+- List, filter, and view incidents.
+- Create incidents and update status.
+- Retrieve incident details, dispatches, and patients.
+- Resolve incidents when permitted by business rules.
+
+### Dispatches
+- Create dispatches connecting incidents and units.
+- Update dispatch status.
+- Retrieve dispatch history.
+- Validate that referenced incidents and units exist.
+- Prevent invalid operations and enforce appropriate state transitions.
+
+### Resources
+- Retrieve resources and availability.
+- Allocate resources to dispatches.
+- Record returned quantities.
+- Prevent negative stock and over-allocation.
+- Keep stock and allocation records consistent.
+
+### Patients
+- Retrieve and manage patient records associated with incidents.
+- Respect the existing composite primary key and foreign-key constraints.
+
+### Calls and activity logs
+Expose the necessary API endpoints for the frontend to retrieve calls and activity logs through the agreed architecture. Coordinate the response formats and identifiers with my teammate rather than implementing duplicate MongoDB storage.
+
+For all APIs:
+- Validate inputs.
+- Use appropriate HTTP methods and status codes.
+- Return consistent error responses.
+- Handle missing records, invalid references, and permission failures.
+- Use pagination and filtering where useful.
+- Document endpoint paths, request bodies, response formats, and permissions.
+
+Keep the API implementation modular and maintainable without unnecessary abstractions.
+
+## 7. Authentication and authorization
+
+The college rubric requires authentication, at least two roles, and role-based access control, including database-level enforcement as specified by the assignment.
+
+Implement a practical role model, such as `admin` and `responder`, adapted to the actual requirements.
+
+Requirements:
+- Secure password hashing.
+- Appropriate session or token handling.
+- Protected backend routes.
+- Server-side permission checks on every protected operation.
+- Clear permissions for each role.
+- MySQL users and privileges or another appropriate database-level enforcement design that satisfies the rubric.
+- Least-privilege database accounts.
+- Secure environment configuration.
+
+Do not rely on frontend restrictions alone. Distinguish application-level authorization from MySQL privileges and demonstrate both where required.
+
+Test that each role can perform permitted actions and is blocked from unauthorized operations. Never hardcode credentials or expose password hashes and secrets.
+
+## 8. Integration with my teammate
+
+Coordinate the backend interface with my teammate's MongoDB and Next.js implementation.
+
+Agree on:
+- Endpoint paths and HTTP methods.
+- Request and response JSON structures.
+- Authentication requirements and role representation.
+- Identifiers used to associate MongoDB documents with MySQL records.
+- How the frontend retrieves calls and activity logs.
+- Error handling for failed or invalid cross-database operations.
+
+MySQL cannot enforce foreign keys into MongoDB. Where necessary, validate references through application logic.
+
+If the MongoDB implementation is not ready, establish the required API contracts and continue with independent backend work. Do not block all progress waiting for the frontend.
+
+## 9. Evaluation and documentation
+
+Use the actual college rubric as the source of truth. Prioritize the criteria relevant to my work, especially advanced SQL, backend integration, authentication, authorization, and database-level permissions.
+
+Provide concise documentation covering:
+- Backend setup and execution.
+- Environment configuration.
+- Database connection and migration instructions.
+- API endpoint specifications.
+- Advanced SQL demonstrations.
+- Role permissions and database privileges.
+- Tests and expected results.
+- Commands needed for the final demonstration.
+
+Keep the implementation appropriate for a two-person college project.
+
+## 10. Execution rules
+
+- Start implementing after briefly inspecting the repository.
+- Reuse working code and existing SQL files.
+- Do not rewrite the schema without a genuine reason.
+- Do not build the frontend or duplicate my teammate's MongoDB implementation.
+- Avoid unnecessary dependencies and excessive abstractions.
+- Do not reread unchanged files or repeat large repository summaries.
+- Warn me and obtain approval before destructive changes.
+- Run relevant tests and fix failures.
+- Never claim that something has been tested unless it actually has.
+- If a requirement is blocked, explain the issue briefly and continue with independent tasks.
+- Keep progress updates concise.
+
+## 11. Completion criteria
+
+My part is complete when:
+1. The backend connects successfully to the existing MySQL database.
+2. Database operations preserve relationships and integrity.
+3. The required advanced SQL features are implemented and demonstrable.
+4. The necessary backend APIs work with validation and error handling.
+5. Authentication and at least two roles work correctly.
+6. Database-level access control satisfies the rubric.
+7. Dispatch and resource operations enforce business rules.
+8. API contracts are documented for my teammate.
+9. Setup instructions and backend tests are available.
+
+When finished, summarize the implemented features, changed files, setup commands, tests actually run, results, and remaining blockers.
+
+**Start implementing now. Do not stop after an audit or plan.**
