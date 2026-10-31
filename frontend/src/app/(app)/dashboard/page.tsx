@@ -25,7 +25,6 @@ export default function Dashboard() {
   const units = useApi<any>("/units?page_size=100", REFRESH);
   const resources = useApi<any>("/resources?page_size=100", REFRESH);
   const active = useApi<any>("/dispatches?active=true&page_size=8", REFRESH);
-  const pending = useApi<any>(staff ? "/recommendations/summary" : null, REFRESH);
 
   const incidents: any[] = recent.data?.data ?? [];
   const unresolved = incidents.filter((i) => i.status === "OPEN" || i.status === "IN_PROGRESS");
@@ -54,10 +53,9 @@ export default function Dashboard() {
         <Stat value={units.data ? unitRows.filter((u) => u.is_free).length : "…"} text={`Units available (of ${unitRows.length})`} href="/units" />
         <Stat value={units.data ? unitRows.filter((u) => !u.is_free).length : "…"} text="Units dispatched / busy" href="/units" />
         <Stat value={resources.data ? shortages.length : "…"} text="Resource shortages" href="/resources" />
-        {staff && <Stat value={pending.error ? "n/a" : pending.data ? pending.data.pending : "…"} text={pending.error ? "Pending recommendations (history store unavailable)" : "Pending recommendations"} href="/map" />}
       </div>
 
-      <div className="grid g2" style={{ marginTop: 14 }}>
+      <div className="grid dash-grid" style={{ marginTop: 14 }}>
         <Card title="Incidents by severity">
           <div className="tablewrap"><table><thead><tr><th>Severity</th><th>Total</th><th>Unresolved</th></tr></thead>
             <tbody>{bySeverity.map((r) => <tr key={r.severity}><td><Badge value={r.severity} kind="severity" /></td><td>{r.total}</td><td>{r.unresolved}</td></tr>)}</tbody></table></div>
@@ -79,17 +77,12 @@ export default function Dashboard() {
               {incidents.slice(0, 6).map((i) => <tr key={i.incident_id}><td><Link href={`/incidents/${i.incident_id}`}>#{i.incident_id} {i.incident_type}</Link></td><td><Badge value={i.severity} kind="severity" /></td><td><Badge value={i.status} /></td><td>{dt(i.created_at)}</td></tr>)}
             </tbody></table></div>}
         </Card>
-        <Card title="Resource shortages (below 25 % of stock)">
+        <Card className="full" title="Resource shortages (below 25 % of stock)">
           {resources.loading && !resources.data ? <Spinner /> : shortages.length === 0 ? <Empty>No shortages.</Empty> :
             <div className="tablewrap"><table><thead><tr><th>Resource</th><th>Available</th><th>Total</th></tr></thead><tbody>
               {shortages.map((r) => <tr key={r.resource_id}><td>{r.resource_name}</td><td>{r.quantity_available}</td><td>{r.quantity_total}</td></tr>)}
             </tbody></table></div>}
         </Card>
-        {summary.data?.response_times && (
-          <Card title="Response times">
-            <p>Average: <strong>{summary.data.response_times.avg_response_minutes ?? "—"}</strong> min · Longest: <strong>{summary.data.response_times.max_response_minutes ?? "—"}</strong> min</p>
-          </Card>
-        )}
       </div>
     </>
   );

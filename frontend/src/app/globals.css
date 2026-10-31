@@ -23,7 +23,9 @@ h1 { font-size: 1.4rem; margin: 0; } h2 { font-size: 1rem; margin: 0; } h3 { fon
 
 .page-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.grid { display: grid; gap: 14px; } .g2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); } .g4 { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.grid { display: grid; gap: 14px; } .g2 { grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); } .g4 { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.grid > * { min-width: 0; }
+.g-detail { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } @media (max-width: 1100px) { .g-detail { grid-template-columns: minmax(0, 1fr); } }
 .card, .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
 .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
 .stat { font-size: 1.9rem; font-weight: 700; line-height: 1.1; } .stat-label { color: var(--muted); font-size: .85rem; }
@@ -69,3 +71,13 @@ input, select, textarea { font: inherit; padding: 7px 9px; border: 1px solid #ae
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .85rem; margin: 8px 0; } .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 .rec { border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-bottom: 8px; } .rec.top { border-color: var(--accent); background: #f5f8ff; }
 .rec ul { margin: 4px 0; padding-left: 18px; }
+
+.call { padding: 10px 0; border-top: 1px solid var(--line); } .call:first-child { border-top: 0; padding-top: 0; }
+.call-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 4px; }
+.call audio { width: 100%; max-width: 420px; display: block; margin: 6px 0; }
+.transcript { list-style: none; margin: 8px 0 0; padding: 8px 10px; background: var(--bg, #f4f6fa); border-radius: 8px; }
+.transcript li { display: flex; gap: 10px; padding: 3px 0; } .transcript .t { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* dashboard: two columns; the last card (resource shortages) takes the whole bottom row */
+.dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dash-grid > .full { grid-column: 1 / -1; }
+@media (max-width: 900px) { .dash-grid { grid-template-columns: minmax(0, 1fr); } }

@@ -63,13 +63,30 @@ def _numbers(text: str) -> set[float]:
 
 def validate(raw_text: str, facts: dict) -> dict:
     """Parse the model reply and verify it against `facts`. Raises ExplanationRejected."""
-    text = raw_text.strip()
+    text = re.sub(r"<think>.*?</think>", "", raw_text, flags=re.S).strip()      # some models print their reasoning first
     if text.startswith("```"):
         text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text)
+    if not text.startswith("{") and "{" in text and "}" in text:                # JSON wrapped in prose
+        text = text[text.index("{"): text.rindex("}") + 1]
     try:
-        explanation = Explanation.model_validate(json.loads(text))
-    except (ValueError, ValidationError) as exc:
-        raise ExplanationRejected(f"Model output is not valid structured JSON: {exc.__class__.__name__}") from exc
+        data = json.loads(text)
+        if isinstance(data, dict):
+            # Too much text is trimmed rather than rejected; invented content is still rejected below.
+            if isinstance(data.get("candidate_reasons"), list):
+                for cr in data["candidate_reasons"]:
+                    if isinstance(cr, dict) and isinstance(cr.get("reasons"), list):
+                        cr["reasons"] = cr["reasons"][:6]
+            if isinstance(data.get("limitations"), list):
+                data["limitations"] = data["limitations"][:10]
+            if isinstance(data.get("summary"), str):
+                data["summary"] = data["summary"].strip()[:800]
+        explanation = Explanation.model_validate(data)
+    except ValidationError as exc:
+        first = exc.errors()[0]
+        where = ".".join(str(p) for p in first["loc"])
+        raise ExplanationRejected(f"Model output does not match the expected JSON shape ({where}: {first['type']})") from exc
+    except ValueError as exc:
+        raise ExplanationRejected("Model output is not valid structured JSON") from exc
 
     candidate_ids = {c["unit_id"] for c in facts["candidates"]}
     cited = {r.unit_id for r in explanation.candidate_reasons} | set(explanation.alternatives)

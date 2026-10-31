@@ -139,7 +139,7 @@ def test_valid_explanation_is_accepted():
     (_reply(candidate_reasons=[{"unit_id": 99, "reasons": ["x"]}]), "not candidates"),
     (_reply(alternatives=[42]), "not candidates"),
     (_reply(summary="Unit 7 is 3.7 km away."), "numbers that are not in the supplied facts"),
-    (_reply(summary=""), "not valid structured JSON"),
+    (_reply(summary=""), "does not match the expected JSON shape"),
 ])
 def test_invalid_explanations_are_rejected(reply, fragment):
     with pytest.raises(explain.ExplanationRejected, match=fragment):
@@ -353,3 +353,17 @@ def test_admin_can_delete_a_recommendation_record(client, admin, dispatcher, sto
     assert client.delete(f"/api/recommendations/{rid}", headers=admin).status_code == 204
     assert client.get(f"/api/recommendations/{rid}", headers=dispatcher).status_code == 404
     assert client.delete(f"/api/recommendations/{rid}", headers=admin).status_code == 404
+
+
+def test_overlong_lists_are_trimmed_and_wrapped_json_is_accepted():
+    facts = explain.facts_for_model(_ranking())
+    long_reasons = [{"unit_id": 7, "reasons": ["Reason " + c for c in "abcdefghi"]}]
+    out = explain.validate(_reply(candidate_reasons=long_reasons, limitations=["x"] * 15), facts)
+    assert len(out["candidate_reasons"][0]["reasons"]) == 6 and len(out["limitations"]) == 10
+    wrapped = "<think>checking the units</think>Here is the JSON:\n" + _reply() + "\nHope this helps."
+    assert explain.validate(wrapped, facts)["alternatives"] == [8]
+
+
+def test_rejection_message_names_the_failing_field():
+    with pytest.raises(explain.ExplanationRejected, match=r"\(alternatives:"):
+        explain.validate(_reply(alternatives="none"), explain.facts_for_model(_ranking()))

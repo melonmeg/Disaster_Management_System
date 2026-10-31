@@ -11,6 +11,7 @@ import { IncidentForm } from "@/components/IncidentForm";
 import { RecommendationPanel } from "@/components/RecommendationPanel";
 import { DispatchDetail } from "@/components/DispatchDetail";
 import { CallRecording } from "@/components/CallRecording";
+import { LogCallForm } from "@/components/LogCallForm";
 
 export default function IncidentDetail() {
   const id = Number(useParams<{ id: string }>().id);
@@ -21,6 +22,7 @@ export default function IncidentDetail() {
   const activity = useApi<any>(`/incidents/${id}/activity`, 30_000);
   const [editing, setEditing] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
+  const [logging, setLogging] = useState(false);
   const resolve = useAction();
 
   const reloadAll = () => { inc.reload(); activity.reload(); };
@@ -35,7 +37,7 @@ export default function IncidentDetail() {
             <button className="btn" disabled={resolve.busy} onClick={() => resolve.run(async () => { await api(`/incidents/${id}/resolve`, { method: "POST" }); reloadAll(); }, "Incident resolved")}>Resolve</button>)}
         </PageHeader>
         <ErrorBox error={resolve.error} />{resolve.ok && <Notice kind="ok">{resolve.ok}</Notice>}
-        <div className="grid g2">
+        <div className="grid g-detail">
           <div className="grid">
             <Card title="Details">
               <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 14px", margin: 0 }}>
@@ -53,7 +55,7 @@ export default function IncidentDetail() {
                 <div className="tablewrap"><table><thead><tr><th>Unit</th><th>Status</th><th>Dispatched</th><th>Crew</th><th /></tr></thead><tbody>
                   {i.dispatches.map((d: any) => (
                     <tr key={d.dispatch_id}><td>{d.unit_name}<div className="muted small-text">{d.organization_name}</div></td><td><Badge value={d.status} /></td><td>{dt(d.dispatched_at)}</td>
-                      <td>{d.crew?.map((c: any) => c.full_name).join(", ") || "—"}</td>
+                      <td>{d.crew || "—"}</td>
                       <td><button className="btn small" onClick={() => setOpen(d.dispatch_id)}>Manage</button></td></tr>))}
                 </tbody></table></div>)}
             </Card>
@@ -64,11 +66,20 @@ export default function IncidentDetail() {
                 </tbody></table></div>)}
             </Card>
             {staff && (
-              <Card title="Calls">
-                <Async state={calls} empty={(d) => d.data.length === 0}>{(d) => (
-                  <div className="tablewrap"><table><thead><tr><th>Received</th><th>Caller</th><th>Priority</th><th>Status</th><th>Notes</th><th>Recording</th></tr></thead><tbody>
-                    {d.data.map((c: any) => <tr key={c.call_id}><td>{dt(c.received_at)}</td><td>{c.caller_name ?? "—"}</td><td><Badge value={c.priority} kind="severity" /></td><td><Badge value={c.status} /></td><td>{c.transcript ?? "—"}</td><td><CallRecording call={c} onChanged={calls.reload} /></td></tr>)}
-                  </tbody></table></div>)}</Async>
+              <Card title="Calls" actions={<button className="btn small primary" onClick={() => setLogging(true)}>Log call</button>}>
+                <Async state={calls} empty={(d) => d.data.length === 0} emptyText="No calls logged for this incident yet. Use “Log call” to add one and attach its recording.">{(d) => (
+                  <div>
+                    {d.data.map((c: any) => (
+                      <div className="call" key={c.call_id}>
+                        <div className="call-head">
+                          <strong>{c.caller_name ?? "Unknown caller"}</strong>
+                          <Badge value={c.priority} kind="severity" /><Badge value={c.status} />
+                          <span className="muted small-text">{dt(c.received_at)}</span>
+                        </div>
+                        {c.transcript && <div>{c.transcript}</div>}
+                        <CallRecording call={c} onChanged={calls.reload} />
+                      </div>))}
+                  </div>)}</Async>
               </Card>)}
             <Card title="Activity log">
               <Async state={activity} empty={(d) => d.data.length === 0}>{(d) => (
@@ -77,6 +88,7 @@ export default function IncidentDetail() {
           </div>
           <Card title="Dispatch recommendation"><RecommendationPanel incidentId={id} onDispatched={reloadAll} /></Card>
         </div>
+        {logging && <LogCallForm incident={i} onClose={() => setLogging(false)} onSaved={calls.reload} />}
         {editing && <IncidentForm incident={i} onClose={() => setEditing(false)} onSaved={reloadAll} />}
         {open !== null && <Modal title="Manage dispatch" onClose={() => setOpen(null)}><DispatchDetail dispatchId={open} onChanged={reloadAll} /></Modal>}
       </>

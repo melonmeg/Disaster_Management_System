@@ -29,9 +29,9 @@ export function Empty({ children }: { children: React.ReactNode }) {
   return <div className="state empty">{children}</div>;
 }
 
-export function Card({ title, actions, children }: { title?: string; actions?: React.ReactNode; children: React.ReactNode }) {
+export function Card({ title, actions, className, children }: { title?: string; actions?: React.ReactNode; className?: string; children: React.ReactNode }) {
   return (
-    <section className="card">
+    <section className={className ? `card ${className}` : "card"}>
       {(title || actions) && <header className="card-head"><h2>{title}</h2><div>{actions}</div></header>}
       {children}
     </section>
@@ -69,9 +69,10 @@ export function Pagination({ page, totalPages, onPage }: { page: number; totalPa
 }
 
 /** Wrap a request's loading / error / empty states around its content. */
-export function Async({ state, empty, children }: {
+export function Async({ state, empty, emptyText = "Nothing to show.", children }: {
   state: { loading: boolean; error: { message: string } | null; data: any; reload: () => void };
   empty?: (data: any) => boolean;
+  emptyText?: string;
   children: (data: any) => React.ReactNode;
 }) {
   if (state.loading && !state.data) return <Spinner />;
@@ -79,6 +80,6 @@ export function Async({ state, empty, children }: {
   if (!state.data) return null;
   return <>
     {state.error && <ErrorBox error={state.error} onRetry={state.reload} />}
-    {empty?.(state.data) ? <Empty>Nothing to show.</Empty> : children(state.data)}
+    {empty?.(state.data) ? <Empty>{emptyText}</Empty> : children(state.data)}
   </>;
 }
