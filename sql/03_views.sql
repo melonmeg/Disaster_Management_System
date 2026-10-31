@@ -98,3 +98,21 @@ SELECT
 FROM responders r
 JOIN organizations o ON o.organization_id = r.organization_id
 LEFT JOIN units u    ON u.unit_id = r.unit_id;
+
+-- ---------- map support (needs the geocode_cache table from 10_geocoding.sql) ----------
+-- Incidents with coordinates when the location text has been geocoded.
+CREATE OR REPLACE VIEW v_incident_map AS
+SELECT
+    i.incident_id, i.incident_type, i.severity, i.location, i.status, i.created_at, i.resolved_at,
+    fn_incident_active_dispatches(i.incident_id) AS active_dispatch_count,
+    g.status AS geocode_status, g.latitude, g.longitude, g.display_name AS geocode_display_name
+FROM incidents i
+LEFT JOIN geocode_cache g ON g.location_key = TRIM(i.location);
+
+-- Units with the coordinates of their base location, when known.
+CREATE OR REPLACE VIEW v_unit_locations AS
+SELECT
+    u.unit_id, u.base_location,
+    g.status AS geocode_status, g.latitude, g.longitude
+FROM units u
+LEFT JOIN geocode_cache g ON g.location_key = TRIM(u.base_location);

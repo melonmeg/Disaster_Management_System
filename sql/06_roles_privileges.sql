@@ -81,3 +81,12 @@ GRANT EXECUTE ON PROCEDURE emergency_response_management.sp_return_resource TO e
 GRANT EXECUTE ON PROCEDURE emergency_response_management.sp_incident_report TO erm_role_responder;
 GRANT EXECUTE ON FUNCTION emergency_response_management.fn_next_patient_no      TO erm_role_responder;
 GRANT EXECUTE ON FUNCTION emergency_response_management.fn_outstanding_quantity TO erm_role_responder;
+
+-- ---------- map / geocoding (10_geocoding.sql, views in 03_views.sql) ----------
+-- Dispatchers may add cache rows and correct them; nobody but admin deletes.
+GRANT SELECT, INSERT, UPDATE ON emergency_response_management.geocode_cache TO erm_role_dispatcher;
+GRANT SELECT ON emergency_response_management.geocode_cache   TO erm_role_responder;
+GRANT SELECT ON emergency_response_management.v_incident_map  TO erm_role_dispatcher;
+GRANT SELECT ON emergency_response_management.v_incident_map  TO erm_role_responder;
+GRANT SELECT ON emergency_response_management.v_unit_locations TO erm_role_dispatcher;
+GRANT SELECT ON emergency_response_management.v_unit_locations TO erm_role_responder;

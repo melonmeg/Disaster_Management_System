@@ -8,8 +8,10 @@
 | `emergency_response.sql` | original schema (unchanged) | no |
 | `emergency_response_demo_data.sql` | original sample data (unchanged) | no |
 | `sql/01_auth_constraints_indexes.sql` | `app_users`, CHECK constraints, UNIQUE (dispatch, resource), indexes | one-time migration |
+| `sql/10_geocoding.sql` | `geocode_cache` table (coordinates for free-text locations). **Run after 01 and before 03**: the map views read it. | one-time migration |
+| `sql/11_call_recordings.sql` | `calls.audio_recording LONGBLOB` (BLOB) + audio metadata columns and a CHECK; `calls.transcript LONGTEXT` is the CLOB | one-time migration |
 | `sql/02_functions.sql` | 7 stored functions | yes |
-| `sql/03_views.sql` | 5 views | yes |
+| `sql/03_views.sql` | 7 views (adds `v_incident_map`, `v_unit_locations`) | yes |
 | `sql/04_procedures.sql` | 6 stored procedures (transactions) | yes |
 | `sql/05_triggers.sql` | 18 triggers | yes |
 | `sql/06_roles_privileges.sql` | MySQL roles + grants | yes |
@@ -17,9 +19,11 @@
 | `sql/08_transactions_demo.sql` | COMMIT / ROLLBACK / SAVEPOINT, failing procedures, triggers | demo |
 | `sql/09_privileges_demo.sql` | SHOW GRANTS, column privileges, per-account tests | demo |
 
-`python scripts/setup_db.py --bootstrap` runs all of the above in order (excluding the demos). It records the one-time migration in `schema_migrations`, so you can re-run it safely.
+`python scripts/setup_db.py --bootstrap` runs all of the above in the correct order, migrations (01, 10, 11) before the re-runnable files (02-06); excluding the demos. If you run the files by hand: 00, schema, demo data, 01, 10, 11, 02, 03, 04, 05, 06. It records the one-time migration in `schema_migrations`, so you can re-run it safely.
 
 ## Rubric mapping
+
+The course rubric (`DBMS Level 3.pdf`, 50 marks) is image-only; its items are: ER diagram (2) -> [ER_DIAGRAM.md](ER_DIAGRAM.md); relational schema (3); DDL with constraints (4); NoSQL/Vector creation (4) + technology justification (1) -> MongoDB, [ER_DIAGRAM.md](ER_DIAGRAM.md); DML (4); nested/correlated/recursive + joins (4); procedures/functions/triggers/CTE (6); NoSQL/Vector feature RUD (7) -> `recommendation_history` create/read/update/delete via `/api/recommendations`; Next.js interface (3); backend/API integration (2); authentication with two roles and database-level RBAC (4); documentation + Git (2); originality/viva (4).
 
 | Rubric item | Where |
 |---|---|

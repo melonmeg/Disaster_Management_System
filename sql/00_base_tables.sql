@@ -9,7 +9,8 @@
 --   1. sql/00_base_tables.sql
 --   2. emergency_response.sql          (existing schema, unchanged)
 --   3. emergency_response_demo_data.sql (existing sample data, unchanged)
---   4. sql/01_* ... sql/05_*            (or simply: python scripts/setup_db.py --bootstrap)
+--   4. sql/01_*, then sql/10_geocoding.sql (03_views.sql needs geocode_cache), then sql/02_* ... sql/06_*
+--      (or simply: python scripts/setup_db.py --bootstrap, which applies migrations first, in the right order)
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS emergency_response_management

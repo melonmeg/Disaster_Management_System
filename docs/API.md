@@ -139,6 +139,16 @@ Roles: **A** admin · **D** dispatcher · **R** responder. "R (own)" = only for 
 | `POST /integration/validate-refs` | A D R | `{incident_ids?, call_ids?, dispatch_ids?, unit_ids?, responder_ids?}` → `{valid, missing:{...}}` (R may not check `call_ids`) |
 | `GET /health` | public | `{status, database}` |
 
+## Call recordings and transcriptions
+
+`POST /calls/{id}/transcribe` (admin, dispatcher) transcribes the stored recording with Groq and saves it in MongoDB. `GET /logs` (admin) reads the MongoDB operational log. Details in the README.
+
+See "Call recordings (BLOB) and transcriptions (MongoDB)" in the root [README](../README.md). Call rows now carry `has_recording`, `audio_filename`, `audio_mime_type`, `audio_size_bytes`, `audio_sha256`, `audio_uploaded_at`; the audio itself is only served by `GET /calls/{id}/recording`.
+
+## Map, geocoding and recommendations
+
+See the "New API endpoints" table in the root [README](../README.md#new-api-endpoints-bearer-token). Same auth, pagination-free JSON, and error format as above; extra codes: `RECOMMENDATION_STORE_UNAVAILABLE` (503, MongoDB down). `DELETE /recommendations/{id}` (admin) returns 204.
+
 ## Integration with the MongoDB / Next.js side (to confirm with teammate)
 
 1. **Source of truth.** Structured, relational data (incidents, calls, dispatches, units, responders, resources, patients, activity log entries) lives in MySQL and is read and written only through this API. MongoDB holds the flexible or unstructured data, for example full call transcripts or recordings metadata, free-form field reports, and rich timelines.

@@ -2,6 +2,7 @@
 
     python scripts/setup_db.py --bootstrap     # first time: create DB + sample data, then everything below
     python scripts/setup_db.py                 # re-apply functions/views/procedures/triggers/grants
+    python scripts/setup_db.py --reset-seed-passwords   # also set the 3 SEED_* logins' passwords to the .env values
 
 Steps
   1. (--bootstrap, only if the database does not exist) run sql/00_base_tables.sql,
@@ -29,7 +30,7 @@ from sqlrunner import run_sql_file  # noqa: E402
 
 load_dotenv(BACKEND / ".env")
 
-MIGRATIONS = ["01_auth_constraints_indexes.sql"]
+MIGRATIONS = ["01_auth_constraints_indexes.sql", "10_geocoding.sql", "11_call_recordings.sql"]
 REPEATABLE = [
     "02_functions.sql",
     "03_views.sql",
@@ -128,7 +129,7 @@ def create_accounts() -> None:
         conn.close()
 
 
-def seed_app_users(db: str) -> None:
+def seed_app_users(db: str, reset_passwords: bool = False) -> None:
     conn = admin_connection(db)
     try:
         with conn.cursor() as cur:
@@ -138,9 +139,16 @@ def seed_app_users(db: str) -> None:
                 if not username or not password:
                     continue
                 cur.execute("SELECT 1 FROM app_users WHERE username = %s", (username,))
-                if cur.fetchone():
-                    continue
+                exists = cur.fetchone()
                 password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+                if exists and reset_passwords:
+                    # token_version + 1 ends any session issued with the old password
+                    cur.execute("UPDATE app_users SET password_hash = %s, token_version = token_version + 1 "
+                                "WHERE username = %s", (password_hash, username))
+                    print(f"  app user '{username}' password reset to the value in .env")
+                    continue
+                if exists:
+                    continue
                 cur.execute(
                     "INSERT INTO app_users (username, password_hash, role, responder_id) VALUES (%s, %s, %s, %s)",
                     (username, password_hash, role, responder_id),
@@ -151,7 +159,7 @@ def seed_app_users(db: str) -> None:
         conn.close()
 
 
-def setup(db: str, allow_bootstrap: bool) -> None:
+def setup(db: str, allow_bootstrap: bool, reset_passwords: bool = False) -> None:
     print(f"Setting up {db}")
     if not database_exists(db):
         if not allow_bootstrap:
@@ -159,7 +167,7 @@ def setup(db: str, allow_bootstrap: bool) -> None:
         bootstrap(db)
     apply_sql(db)
     create_accounts()
-    seed_app_users(db)
+    seed_app_users(db, reset_passwords)
     print("Done.")
 
 
@@ -167,5 +175,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--database", default=os.environ.get("DB_NAME", "emergency_response_management"))
     parser.add_argument("--bootstrap", action="store_true", help="create the database if it does not exist")
+    parser.add_argument("--reset-seed-passwords", action="store_true",
+                        help="overwrite the passwords of the SEED_* users that already exist with the .env values")
     args = parser.parse_args()
-    setup(args.database, args.bootstrap)
+    setup(args.database, args.bootstrap, args.reset_seed_passwords)

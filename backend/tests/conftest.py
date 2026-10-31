@@ -15,6 +15,11 @@ BACKEND = Path(__file__).resolve().parents[1]
 load_dotenv(BACKEND / ".env")
 TEST_DB = os.environ.get("TEST_DB_NAME", "emergency_response_management_test")
 os.environ["DB_NAME"] = TEST_DB  # must happen before the app is imported
+# Tests must never use real third-party credentials or the network: no LLM, no Mappls (tests inject fakes/stubs).
+os.environ["LLM_ENABLED"] = "false"
+os.environ["MAPPLS_API_KEY"] = ""
+os.environ["STT_ENABLED"] = "false"      # speech-to-text is faked in tests that need it
+os.environ["OPLOG_ENABLED"] = "false"    # tests of the operational log install a mongomock store
 sys.path.insert(0, str(BACKEND / "scripts"))
 
 from create_test_db import rebuild_test_db  # noqa: E402

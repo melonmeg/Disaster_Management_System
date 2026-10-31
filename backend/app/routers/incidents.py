@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from ..common import Page, paginated, require_row, updates_from
 from ..db import Database
 from ..errors import forbidden
+from .calls import CALL_COLUMNS
 from ..schemas import IncidentIn, IncidentStatus, IncidentUpdate, Severity
 from ..security import CurrentUser, current_user, get_db, require_roles
 
@@ -75,7 +76,10 @@ def incident_calls(incident_id: int, user: CurrentUser = Depends(current_user), 
     if user.role == "responder":
         raise forbidden("Responders cannot view call records")
     fetch_incident(db, incident_id)
-    return {"data": db.all("SELECT * FROM calls WHERE incident_id = %s ORDER BY received_at", (incident_id,))}
+    rows = db.all(f"SELECT {CALL_COLUMNS} FROM calls c WHERE c.incident_id = %s ORDER BY c.received_at", (incident_id,))
+    for row in rows:
+        row["has_recording"] = bool(row["has_recording"])
+    return {"data": rows}
 
 
 @router.get("/{incident_id}/activity")
