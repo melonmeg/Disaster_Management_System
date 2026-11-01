@@ -12,10 +12,11 @@ import { RecommendationPanel } from "@/components/RecommendationPanel";
 import { DispatchDetail } from "@/components/DispatchDetail";
 import { CallRecording } from "@/components/CallRecording";
 import { LogCallForm } from "@/components/LogCallForm";
+import { PatientForm } from "@/components/PatientForm";
 
 export default function IncidentDetail() {
   const id = Number(useParams<{ id: string }>().id);
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const staff = can("admin", "dispatcher");
   const inc = useApi<any>(`/incidents/${id}`, 30_000);
   const calls = useApi<any>(staff ? `/incidents/${id}/calls` : null);
@@ -23,9 +24,17 @@ export default function IncidentDetail() {
   const [editing, setEditing] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
   const [logging, setLogging] = useState(false);
+  const [patientForm, setPatientForm] = useState<any | "new" | null>(null);
+  // A responder's own unit decides whether they may add/edit patients here (the server enforces the same rule).
+  const me = useApi<any>(user?.role === "responder" && user.responder_id ? `/responders/${user.responder_id}` : null);
   const resolve = useAction();
 
   const reloadAll = () => { inc.reload(); activity.reload(); };
+  const canEditPatients = (i: any) => staff || (!!me.data?.unit_id && i.dispatches.some((d: any) => d.unit_id === me.data.unit_id));
+  const removePatient = (p: any) => {
+    if (!confirm(`Delete patient #${p.patient_no}${p.patient_name ? ` (${p.patient_name})` : ""}?`)) return;
+    resolve.run(async () => { await api(`/incidents/${id}/patients/${p.patient_no}`, { method: "DELETE" }); reloadAll(); }, "Patient deleted");
+  };
 
   return (
     <Async state={inc}>{(i) => (
@@ -59,10 +68,13 @@ export default function IncidentDetail() {
                       <td><button className="btn small" onClick={() => setOpen(d.dispatch_id)}>Manage</button></td></tr>))}
                 </tbody></table></div>)}
             </Card>
-            <Card title={`Patients (${i.patients.length})`}>
+            <Card title={`Patients (${i.patients.length})`}
+              actions={canEditPatients(i) && <button className="btn small primary" onClick={() => setPatientForm("new")}>Add patient</button>}>
               {i.patients.length === 0 ? <Empty>No patients recorded.</Empty> : (
-                <div className="tablewrap"><table><thead><tr><th>#</th><th>Name</th><th>Age</th><th>Gender</th><th>Condition</th></tr></thead><tbody>
-                  {i.patients.map((p: any) => <tr key={p.patient_no}><td>{p.patient_no}</td><td>{p.patient_name ?? "—"}</td><td>{p.age ?? "—"}</td><td>{p.gender ?? "—"}</td><td>{p.patient_condition ?? "—"}</td></tr>)}
+                <div className="tablewrap"><table><thead><tr><th>#</th><th>Name</th><th>Age</th><th>Gender</th><th>Condition</th><th /></tr></thead><tbody>
+                  {i.patients.map((p: any) => <tr key={p.patient_no}><td>{p.patient_no}</td><td>{p.patient_name ?? "—"}</td><td>{p.age ?? "—"}</td><td>{p.gender ?? "—"}</td><td>{p.patient_condition ?? "—"}</td>
+                    <td>{canEditPatients(i) && <span className="row"><button className="btn small" onClick={() => setPatientForm(p)}>Edit</button>
+                      {can("admin") && <button className="btn small danger" onClick={() => removePatient(p)}>Delete</button>}</span>}</td></tr>)}
                 </tbody></table></div>)}
             </Card>
             {staff && (
@@ -88,6 +100,7 @@ export default function IncidentDetail() {
           </div>
           <Card title="Dispatch recommendation"><RecommendationPanel incidentId={id} onDispatched={reloadAll} /></Card>
         </div>
+        {patientForm !== null && <PatientForm incidentId={id} patient={patientForm === "new" ? undefined : patientForm} onClose={() => setPatientForm(null)} onSaved={reloadAll} />}
         {logging && <LogCallForm incident={i} onClose={() => setLogging(false)} onSaved={calls.reload} />}
         {editing && <IncidentForm incident={i} onClose={() => setEditing(false)} onSaved={reloadAll} />}
         {open !== null && <Modal title="Manage dispatch" onClose={() => setOpen(null)}><DispatchDetail dispatchId={open} onChanged={reloadAll} /></Modal>}

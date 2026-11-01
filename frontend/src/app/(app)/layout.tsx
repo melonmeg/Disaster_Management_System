@@ -12,6 +12,7 @@ const NAV: { href: string; text: string; roles?: string[] }[] = [
   { href: "/dispatches", text: "Dispatches" },
   { href: "/units", text: "Units & responders" },
   { href: "/resources", text: "Resources" },
+  { href: "/users", text: "Accounts", roles: ["admin"] },
   { href: "/logs", text: "Operational log", roles: ["admin"] },
 ];
 

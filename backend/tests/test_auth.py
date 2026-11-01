@@ -81,3 +81,11 @@ def test_password_is_stored_as_bcrypt_hash(client, admin):
         stored = cur.fetchone()[0]
     conn.close()
     assert stored.startswith("$2") and os.environ["SEED_ADMIN_PASSWORD"] not in stored
+
+
+def test_admin_cannot_lock_themselves_out(client, admin):
+    me = client.get("/api/auth/me", headers=admin).json()["user_id"]
+    for body in ({"is_active": False}, {"role": "dispatcher"}):
+        res = client.patch(f"/api/users/{me}", headers=admin, json=body)
+        assert res.status_code == 400 and "your own account" in res.json()["error"]["message"]
+    assert client.get("/api/auth/me", headers=admin).status_code == 200      # the rejected changes did not end the session

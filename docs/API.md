@@ -43,6 +43,7 @@ Every error has the same shape:
 | `POST /auth/logout` | any | – | 204; all of the user's tokens stop working |
 | `GET /auth/me` | any | – | `{user_id, username, role, responder_id}` |
 | `POST /auth/register` | admin | `{username, password(≥8), role, responder_id?}` (`responder_id` required for responder) | 201 user (no hash) |
+| `POST /users` | admin | `{username, password, role, person?{first_name, last_name, middle_name?, phone?, email?, responder_type?, organization_id?, unit_id?} \| responder_id?}` creates the login and, for dispatcher/responder roles, the person (a new responders row) in one transaction. `admin`: no person. `dispatcher`: saved as responder_type `Dispatcher`. `responder`: `responder_type` required; `organization_id` required; `unit_id` must belong to the same organisation (409). Send `responder_id` instead of `person` to link an existing responder | 201 user |
 | `GET /users` | admin | – | `{data:[user]}` |
 | `PATCH /users/{id}` | admin | `{role?, responder_id?, is_active?, password?}` | user; ends that user's sessions |
 
@@ -64,7 +65,7 @@ Roles: **A** admin · **D** dispatcher · **R** responder. "R (own)" = only for 
 ### Responders
 | | Roles | Notes |
 |---|---|---|
-| `GET /responders?organization_id=&unit_id=&availability=&responder_type=` | A D R | `{responder_id, full_name, responder_type, availability, phone, organization_id, organization_name, unit_id, unit_name, email*}` (*not for R) |
+| `GET /responders?organization_id=&unit_id=&availability=&responder_type=` | A D R | `{responder_id, full_name, responder_type, availability, phone, organization_id, organization_name, unit_id, unit_name, email*}` (*not for R). |
 | `GET /responders/{id}` | A D R | |
 | `POST /responders` | A | `{first_name, middle_name?, last_name, phone?, email?, responder_type?, availability?, organization_id, unit_id?}` |
 | `PATCH /responders/{id}` | A | personal fields / organization |

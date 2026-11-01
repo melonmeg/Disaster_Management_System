@@ -293,7 +293,7 @@ def backup(conn, stamp: str) -> Path:
     dump = {}
     with conn.cursor() as cur:
         for t in tables:
-            if t == "calls":     # keep the backup small and text-only: audio is recorded as a size, not copied
+            if t == "calls":     # audio bytes go to separate files, not into the JSON
                 cur.execute("SELECT call_id, received_by, status, transcript, received_at, caller_name, priority, caller_phone, "
                             "location, incident_id, audio_filename, audio_mime_type, audio_size_bytes, audio_sha256 FROM calls")
             else:
@@ -302,6 +302,15 @@ def backup(conn, stamp: str) -> Path:
             dump[t] = [dict(zip(cols, row)) for row in cur.fetchall()]
     out = BACKEND / "backups"
     out.mkdir(exist_ok=True)
+    with conn.cursor() as cur:
+        cur.execute("SELECT call_id, audio_filename, audio_recording FROM calls WHERE audio_recording IS NOT NULL")
+        recordings = cur.fetchall()
+    if recordings:
+        folder = out / f"before-demo-seed-{stamp}-audio"
+        folder.mkdir(exist_ok=True)
+        for call_id, filename, data in recordings:
+            (folder / f"call-{call_id}-{filename or 'recording'}").write_bytes(data)
+        print(f"  {len(recordings)} call recording(s) saved as files in {folder}")
     path = out / f"before-demo-seed-{stamp}.json"
     path.write_text(json.dumps(dump, default=lambda o: base64.b64encode(o).decode() if isinstance(o, bytes) else str(o), indent=1), encoding="utf-8")
     return path
@@ -339,11 +348,19 @@ def main():
 
     print("3/5 Replacing data ...")
     cur = conn.cursor()
+    cur.execute("SELECT responder_id FROM app_users WHERE responder_id IS NOT NULL")
+    clash = sorted({r[0] for r in cur.fetchall()} & {r[0] for r in RESPONDERS})
+    if clash:
+        raise SystemExit(f"STOP: logins point at responders {clash}, whose ids this script wants to reuse. Nothing was changed.")
     cur.execute("SET FOREIGN_KEY_CHECKS = 0")
     for t in ("activity_logs", "dispatch_resources", "dispatches", "incident_patients", "calls", "incidents", "resources", "geocode_cache"):
         cur.execute(f"TRUNCATE TABLE {t}")
+    cur.execute("SELECT responder_id, unit_id FROM responders WHERE unit_id IS NOT NULL AND responder_id IN "
+                "(SELECT responder_id FROM app_users WHERE responder_id IS NOT NULL)")
+    kept_units = cur.fetchall()                          # people with a login keep their unit (units are re-created with the same ids)
     cur.execute("UPDATE responders SET unit_id = NULL")
-    cur.execute("DELETE FROM responders WHERE responder_id > 2")
+    cur.execute("DELETE FROM responders WHERE responder_id > 2 AND responder_id NOT IN "
+                "(SELECT responder_id FROM app_users WHERE responder_id IS NOT NULL)")
     cur.execute("DELETE FROM units")
     cur.execute("SET FOREIGN_KEY_CHECKS = 1")
     for oid, name, loc in ORGS:
@@ -354,6 +371,9 @@ def main():
     cur.execute("UPDATE responders SET unit_id = 1, availability = 'AVAILABLE', organization_id = 1, responder_type = 'Police Officer' WHERE responder_id = 2")
     cur.executemany("INSERT INTO responders (responder_id, first_name, middle_name, last_name, phone, email, responder_type, availability, "
                     "organization_id, unit_id) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", RESPONDERS)
+    for rid, uid in kept_units:
+        if rid > 2:
+            cur.execute("UPDATE responders SET unit_id = %s WHERE responder_id = %s AND organization_id = (SELECT organization_id FROM units WHERE unit_id = %s)", (uid, rid, uid))
     cur.executemany("INSERT INTO resources (resource_id, resource_name, resource_type, quantity_total, quantity_available, location, organization_id, status) "
                     "VALUES (%s,%s,%s,%s,%s,%s,%s,'AVAILABLE')", [(i, n, t, q, q, loc, o) for i, n, t, q, loc, o in RESOURCES])
     for text, (lat, lon, display) in coords.items():

@@ -37,6 +37,27 @@ class RegisterIn(Body):
     responder_id: int | None = Field(None, gt=0)
 
 
+class PersonIn(Body):
+    """The person behind a dispatcher/responder login. A new responders row is created for them."""
+    first_name: str = Str50
+    middle_name: str | None = Field(None, max_length=50)
+    last_name: str = Str50
+    phone: str | None = Field(None, max_length=20, pattern=r"^[0-9+\- ]{6,20}$")
+    email: EmailStr | None = None
+    responder_type: str | None = Field(None, max_length=50, description="forced to 'Dispatcher' for the dispatcher role")
+    organization_id: int = Field(gt=0)
+    unit_id: int | None = Field(None, gt=0)
+
+
+class AccountIn(Body):
+    """One call that creates a login and, for non-admin roles, the person it belongs to (or links an existing one)."""
+    username: str = Field(min_length=3, max_length=50, pattern=r"^[A-Za-z0-9_.-]+$")
+    password: str = Field(min_length=8, max_length=128)
+    role: Role
+    person: PersonIn | None = None
+    responder_id: int | None = Field(None, gt=0, description="link an existing responder instead of creating one")
+
+
 class UserUpdate(Body):
     role: Role | None = None
     responder_id: int | None = Field(None, gt=0)
